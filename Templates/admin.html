@@ -1,0 +1,82 @@
+{% extends "layout.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block subtitle %}Platform overview · All sellers{% endblock %}
+
+{% block content %}
+<div class="stats">
+  <div class="stat">
+    <div class="stat-ico">👥</div>
+    <div class="stat-lbl">Sellers</div>
+    <div class="stat-val">{{ sellers }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-ico">📦</div>
+    <div class="stat-lbl">Products</div>
+    <div class="stat-val">{{ products|length }}</div>
+  </div>
+  <div class="stat red">
+    <div class="stat-ico">⚠</div>
+    <div class="stat-lbl">Low Stock</div>
+    <div class="stat-val">{{ products|selectattr("quantity","lt",5)|list|length }}</div>
+  </div>
+  <div class="stat gold">
+    <div class="stat-ico">₹</div>
+    <div class="stat-lbl">Total Revenue</div>
+    <div class="stat-val">₹{{ "%.0f"|format(revenue) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Inventory</h3>
+    <input class="sm" style="max-width:200px;padding:7px 12px;font-size:12px"
+           placeholder="Search…" oninput="filterTbl(this,'inv')">
+  </div>
+  <table id="inv">
+    <tr><th>Product</th><th>SKU</th><th>Price</th><th>Stock</th><th>Expiry</th><th>Status</th></tr>
+    {% for p in products %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td class="mono c-m">{{ p.sku or '—' }}</td>
+      <td class="mono c-g">₹{{ p.price }}</td>
+      <td class="mono">{{ p.quantity }}</td>
+      <td class="c-m" style="font-size:12px">{{ p.expiry or '—' }}</td>
+      <td>
+        {% if p.quantity == 0 %}<span class="tag tag-r">OUT</span>
+        {% elif p.quantity < 5 %}<span class="tag tag-o">LOW</span>
+        {% else %}<span class="tag tag-g">OK</span>{% endif %}
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="6" class="empty">No products yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>All Transactions</h3></div>
+  <table>
+    <tr><th>#</th><th>Product</th><th>Seller</th><th>Qty</th><th>Unit</th><th>Total</th><th>Date</th></tr>
+    {% for t in txns %}
+    <tr>
+      <td class="mono c-m">#{{ '%04d'|format(t.id) }}</td>
+      <td>{{ t.product_name }}</td>
+      <td class="c-d">{{ t.seller_name }}</td>
+      <td class="mono">{{ t.quantity }}</td>
+      <td class="mono c-m">₹{{ t.price }}</td>
+      <td class="mono c-g" style="font-weight:700">₹{{ t.total_price }}</td>
+      <td class="c-m" style="font-size:12px">{{ t.created_at }}</td>
+    </tr>
+    {% else %}<tr><td colspan="7" class="empty">No transactions yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script>
+function filterTbl(inp, id) {
+  let v = inp.value.toLowerCase();
+  document.querySelectorAll('#'+id+' tr:not(:first-child)').forEach(r =>
+    r.style.display = r.innerText.toLowerCase().includes(v) ? '' : 'none'
+  );
+}
+</script>
+{% endblock %}

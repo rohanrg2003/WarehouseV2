@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+{% block title %}Transactions{% endblock %}
+{% block subtitle %}Sales history · Stock validation{% endblock %}
+
+{% block content %}
+<div class="stats">
+  <div class="stat">
+    <div class="stat-ico">◈</div>
+    <div class="stat-lbl">Total Sales</div>
+    <div class="stat-val">{{ txns|length }}</div>
+  </div>
+  <div class="stat gold">
+    <div class="stat-ico">₹</div>
+    <div class="stat-lbl">Revenue</div>
+    <div class="stat-val">₹{{ "%.0f"|format(revenue) }}</div>
+  </div>
+</div>
+
+<!-- Record Sale -->
+<div class="card">
+  <div class="card-head"><h3>Record a Sale</h3></div>
+  <form method="POST" action="/create_transaction" class="sale-form" onsubmit="return validate()">
+    <div>
+      <label>Product</label>
+      <select name="product_id" id="prod" onchange="onProd()" required>
+        <option value="" disabled selected>Select product…</option>
+        {% for p in products %}
+        <option value="{{ p.id }}" data-stock="{{ p.quantity }}" data-price="{{ p.price }}" data-name="{{ p.name }}"
+          {{ 'disabled' if p.quantity == 0 else '' }}>
+          {{ p.name }}{% if p.quantity == 0 %} (OUT){% else %} — ₹{{ p.price }} · {{ p.quantity }} left{% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label>Quantity <span id="hint" class="mono c-m"></span></label>
+      <input name="quantity" id="qty" type="number" min="1" placeholder="0"
+             oninput="onQty()" required>
+      <small id="err" class="c-r" style="display:none;font-size:11px;margin-top:4px;display:none"></small>
+    </div>
+    <div style="align-self:flex-end">
+      <button type="submit" class="primary" id="sbtn">Record Sale →</button>
+    </div>
+  </form>
+  <div id="preview" class="preview" style="display:none"></div>
+</div>
+
+<!-- History -->
+<div class="card">
+  <div class="card-head"><h3>Transaction History</h3></div>
+  <table>
+    <tr><th>#</th><th>Product</th><th>Qty Sold</th><th>Unit Price</th><th>Total</th><th>Stock Left</th><th>Date</th></tr>
+    {% for t in txns %}
+    <tr>
+      <td class="mono c-m">#{{ '%04d'|format(t.id) }}</td>
+      <td>
+        {{ t.product_name }}
+        {% if t.sku %}<br><span class="mono c-m">{{ t.sku }}</span>{% endif %}
+      </td>
+      <td class="mono">{{ t.quantity }}</td>
+      <td class="mono c-m">₹{{ t.price }}</td>
+      <td class="mono c-g" style="font-weight:700">₹{{ t.total_price }}</td>
+      <td>
+        {% if t.stock_left == 0 %}<span class="tag tag-r">0 · OUT</span>
+        {% elif t.stock_left < 5 %}<span class="tag tag-o">{{ t.stock_left }} · LOW</span>
+        {% else %}<span class="tag tag-g">{{ t.stock_left }}</span>{% endif %}
+      </td>
+      <td class="c-m" style="font-size:12px">{{ t.created_at }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="empty">No transactions yet.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<script>
+function opt() {
+  const s = document.getElementById('prod');
+  return s.options[s.selectedIndex];
+}
+function onProd() {
+  const o = opt();
+  document.getElementById('hint').textContent = o.value ? `(${o.dataset.stock} available)` : '';
+  document.getElementById('qty').value = '';
+  document.getElementById('qty').max   = o.dataset.stock;
+  document.getElementById('err').style.display = 'none';
+  document.getElementById('preview').style.display = 'none';
+  document.getElementById('sbtn').disabled = false;
+}
+function onQty() {
+  const o = opt(); if (!o.value) return;
+  const qty = parseInt(document.getElementById('qty').value);
+  const err = document.getElementById('err');
+  const pre = document.getElementById('preview');
+  if (!qty || qty <= 0) { pre.style.display = 'none'; return; }
+  if (qty > parseInt(o.dataset.stock)) {
+    err.textContent = `⚠ Only ${o.dataset.stock} available!`;
+    err.style.display = 'block';
+    pre.style.display  = 'none';
+    document.getElementById('sbtn').disabled = true;
+  } else {
+    err.style.display = 'none';
+    document.getElementById('sbtn').disabled = false;
+    const total = (qty * parseFloat(o.dataset.price)).toFixed(2);
+    const left  = parseInt(o.dataset.stock) - qty;
+    pre.innerHTML = `<strong>${qty} × ${o.dataset.name}</strong> = <strong class="c-g">₹${total}</strong> &nbsp;·&nbsp; Stock after sale: <strong class="${left<5?'c-r':'c-gr'}">${left} units</strong>`;
+    pre.style.display = 'block';
+  }
+}
+function validate() {
+  const o = opt(); const qty = parseInt(document.getElementById('qty').value);
+  if (!o.value || !qty || qty > parseInt(o.dataset.stock)) return false;
+  return true;
+}
+</script>
+{% endblock %}

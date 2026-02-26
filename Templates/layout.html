@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Warehouse OS</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+{% if session.user_id %}
+<div class="sidebar">
+  <div class="s-logo">
+    <div class="s-logo-icon">📦</div>
+    <div class="s-logo-text">
+      <strong>WAREHOUSE</strong>
+      <span>OS v2</span>
+    </div>
+  </div>
+
+  <div class="s-sect">Menu</div>
+  <nav>
+    {% if session.role == 'admin' %}
+      <a href="/admin" class="{{ 'active' if request.path=='/admin' else '' }}">
+        <span class="ico">⬡</span> Dashboard
+      </a>
+    {% else %}
+      <a href="/seller" class="{{ 'active' if request.path=='/seller' else '' }}">
+        <span class="ico">⬡</span> Dashboard
+      </a>
+      <a href="/seller/transactions" class="{{ 'active' if request.path=='/seller/transactions' else '' }}">
+        <span class="ico">◈</span> Transactions
+      </a>
+    {% endif %}
+  </nav>
+
+  <div class="s-foot">
+    <a href="/logout"><span class="ico">↩</span> Sign Out</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">{% block title %}{% endblock %}</div>
+      <div class="topbar-sub">{% block subtitle %}{% endblock %}</div>
+    </div>
+    {% if session.role %}
+      <span class="role-pill">{{ session.role }}</span>
+    {% endif %}
+  </div>
+
+  <div class="content">
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}
+        <div class="alert alert-{{ cat }}">
+          {{ '✓' if cat=='success' else '⚠' }} {{ msg }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.alert').forEach(a =>
+  setTimeout(() => { a.style.transition='opacity .4s'; a.style.opacity='0'; setTimeout(()=>a.remove(),400); }, 4000)
+);
+</script>
+</body>
+</html>

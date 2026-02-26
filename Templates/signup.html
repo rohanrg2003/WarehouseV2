@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sign Up — Warehouse OS</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="ico">📦</div>
+      <div>
+        <strong>WAREHOUSE OS</strong>
+        <span>v2.0</span>
+      </div>
+    </div>
+    <h2>Create account</h2>
+    <p class="sub">Register as a new seller</p>
+
+    {% if error %}
+      <div class="alert alert-error">⚠ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div>
+        <label>Business / Full Name</label>
+        <input name="seller_name" placeholder="e.g. Ravi Electronics" required>
+      </div>
+      <div>
+        <label>Username</label>
+        <input name="username" placeholder="choose a username" required>
+      </div>
+      <div>
+        <label>Password</label>
+        <input name="password" type="password" placeholder="choose a password" required>
+      </div>
+      <button type="submit" class="primary" style="width:100%;justify-content:center;padding:11px">
+        Create Account →
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      Already have an account? <a href="/login">Sign in</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

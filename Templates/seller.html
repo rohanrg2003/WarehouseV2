@@ -1,0 +1,305 @@
+{% extends "layout.html" %}
+{% block title %}Seller Dashboard{% endblock %}
+{% block subtitle %}{{ session.seller_name }} · @{{ session.username }}{% endblock %}
+
+{% block content %}
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-ico">📦</div>
+    <div class="stat-lbl">Products</div>
+    <div class="stat-val">{{ products|length }}</div>
+  </div>
+  <div class="stat red">
+    <div class="stat-ico">⚠</div>
+    <div class="stat-lbl">Low Stock</div>
+    <div class="stat-val">{{ products|selectattr("quantity","lt",5)|list|length }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat-ico">◈</div>
+    <div class="stat-lbl">Transactions</div>
+    <div class="stat-val">{{ tx_count }}</div>
+  </div>
+  <div class="stat gold">
+    <div class="stat-ico">₹</div>
+    <div class="stat-lbl">Revenue</div>
+    <div class="stat-val">₹{{ "%.0f"|format(revenue) }}</div>
+  </div>
+</div>
+
+<div class="two-col">
+
+  <!-- ── Products ────────────────────────── -->
+  <div class="card">
+    <div class="card-head">
+      <h3>Products</h3>
+      <button type="button" onclick="openM('ap')">+ Add Product</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th><th>SKU</th><th>Price</th>
+          <th>Stock</th><th>Expiry</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td>
+            {{ p.name }}
+            {% for c in p.cats %}<span class="cat-chip">{{ c }}</span>{% endfor %}
+          </td>
+          <td class="mono c-m">{{ p.sku or '—' }}</td>
+          <td class="mono c-g">₹{{ p.price }}</td>
+          <td class="mono {% if p.quantity < 5 %}c-r{% endif %}">{{ p.quantity }}</td>
+          <td class="c-m" style="font-size:12px">{{ p.expiry or '—' }}</td>
+          <td>
+            {% if p.quantity == 0 %}
+              <span class="tag tag-r">OUT</span>
+            {% elif p.quantity < 5 %}
+              <span class="tag tag-o">LOW</span>
+            {% else %}
+              <span class="tag tag-g">OK</span>
+            {% endif %}
+          </td>
+          <td style="white-space:nowrap">
+            <button type="button" class="sm"
+              data-id="{{ p.id }}"
+              data-name="{{ p.name }}"
+              data-sku="{{ p.sku or '' }}"
+              data-price="{{ p.price }}"
+              data-qty="{{ p.quantity }}"
+              data-expiry="{{ p.expiry or '' }}"
+              onclick="fillEdit(this)">Edit</button>
+            <a href="/delete_product/{{ p.id }}" class="del"
+               onclick="return confirm('Delete this product?')">Del</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="empty">No products yet. Add one!</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Categories ──────────────────────── -->
+  <div class="card">
+    <div class="card-head">
+      <h3>Categories</h3>
+      <button type="button" class="sm" onclick="openM('ac')">+ Add</button>
+    </div>
+    {% for c in cats %}
+    <div class="cat-row">
+      <div>
+        <strong>{{ c.name }}</strong>
+        {% if c.specs %}<br><small>{{ c.specs }}</small>{% endif %}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button type="button" class="sm"
+          data-id="{{ c.id }}"
+          data-name="{{ c.name }}"
+          data-specs="{{ c.specs or '' }}"
+          onclick="fillEditCat(this)">✏</button>
+        <a href="/delete_category/{{ c.id }}" class="del"
+           onclick="return confirm('Delete this category?')">×</a>
+      </div>
+    </div>
+    {% else %}
+    <p class="empty">No categories yet.</p>
+    {% endfor %}
+  </div>
+
+</div><!-- end two-col -->
+
+
+<!-- ════ MODALS ════════════════════════════════════════════ -->
+
+<!-- Add Product -->
+<div class="modal" id="ap">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Product</h3>
+      <button type="button" class="x" onclick="closeM('ap')">✕</button>
+    </div>
+    <form method="POST" action="/add_product">
+      <div class="fg">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="e.g. Wheat Flour 5kg" required>
+      </div>
+      <div class="f2">
+        <div class="fg">
+          <label>SKU <small>(optional)</small></label>
+          <input type="text" name="sku" placeholder="e.g. WF-01">
+        </div>
+        <div class="fg">
+          <label>Price ₹</label>
+          <input type="number" name="price" step="0.01" min="0" placeholder="0.00" required>
+        </div>
+      </div>
+      <div class="f2">
+        <div class="fg">
+          <label>Quantity</label>
+          <input type="number" name="quantity" min="0" placeholder="0" required>
+        </div>
+        <div class="fg">
+          <label>Expiry Date</label>
+          <input type="date" name="expiry">
+        </div>
+      </div>
+      {% if cats %}
+      <div class="fg">
+        <label>Categories</label>
+        <div class="check-g">
+          {% for c in cats %}
+          <label class="chk">
+            <input type="checkbox" name="cat_ids" value="{{ c.id }}"> {{ c.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="modal-foot">
+        <button type="button" onclick="closeM('ap')">Cancel</button>
+        <button type="submit" class="primary">Add Product</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Product -->
+<div class="modal" id="ep">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Product</h3>
+      <button type="button" class="x" onclick="closeM('ep')">✕</button>
+    </div>
+    <form method="POST" id="ep-form" action="">
+      <div class="fg">
+        <label>Name</label>
+        <input type="text" id="ep-n" name="name" required>
+      </div>
+      <div class="f2">
+        <div class="fg">
+          <label>SKU <small>(optional)</small></label>
+          <input type="text" id="ep-s" name="sku">
+        </div>
+        <div class="fg">
+          <label>Price ₹</label>
+          <input type="number" id="ep-p" name="price" step="0.01" min="0" required>
+        </div>
+      </div>
+      <div class="f2">
+        <div class="fg">
+          <label>Quantity</label>
+          <input type="number" id="ep-q" name="quantity" min="0" required>
+        </div>
+        <div class="fg">
+          <label>Expiry Date</label>
+          <input type="date" id="ep-e" name="expiry">
+        </div>
+      </div>
+      {% if cats %}
+      <div class="fg">
+        <label>Categories</label>
+        <div class="check-g" id="ep-cats">
+          {% for c in cats %}
+          <label class="chk">
+            <input type="checkbox" name="cat_ids" value="{{ c.id }}" data-id="{{ c.id }}"> {{ c.name }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+      <div class="modal-foot">
+        <button type="button" onclick="closeM('ep')">Cancel</button>
+        <button type="submit" class="primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Category -->
+<div class="modal" id="ac">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Category</h3>
+      <button type="button" class="x" onclick="closeM('ac')">✕</button>
+    </div>
+    <form method="POST" action="/add_category">
+      <div class="fg">
+        <label>Category Name</label>
+        <input type="text" name="name" placeholder="e.g. Dairy, Electronics" required>
+      </div>
+      <div class="fg">
+        <label>Specs <small>(optional)</small></label>
+        <input type="text" name="specs" placeholder="brief description">
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeM('ac')">Cancel</button>
+        <button type="submit" class="primary">Add Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Category -->
+<div class="modal" id="ec">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Category</h3>
+      <button type="button" class="x" onclick="closeM('ec')">✕</button>
+    </div>
+    <form method="POST" id="ec-form" action="">
+      <div class="fg">
+        <label>Category Name</label>
+        <input type="text" id="ec-n" name="name" required>
+      </div>
+      <div class="fg">
+        <label>Specs</label>
+        <input type="text" id="ec-s" name="specs">
+      </div>
+      <div class="modal-foot">
+        <button type="button" onclick="closeM('ec')">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<script>
+  // Modal open/close — named openM/closeM to avoid browser built-in conflicts
+  function openM(id)  { document.getElementById(id).classList.add('open');    }
+  function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+  // Close modal when clicking the dark backdrop
+  document.querySelectorAll('.modal').forEach(function(m) {
+    m.addEventListener('click', function(e) {
+      if (e.target === m) m.classList.remove('open');
+    });
+  });
+
+  // Fill and open Edit Product modal
+  function fillEdit(btn) {
+    var d = btn.dataset;
+    document.getElementById('ep-form').action = '/edit_product/' + d.id;
+    document.getElementById('ep-n').value  = d.name;
+    document.getElementById('ep-s').value  = d.sku;
+    document.getElementById('ep-p').value  = d.price;
+    document.getElementById('ep-q').value  = d.qty;
+    document.getElementById('ep-e').value  = d.expiry;
+    openM('ep');
+  }
+
+  // Fill and open Edit Category modal
+  function fillEditCat(btn) {
+    var d = btn.dataset;
+    document.getElementById('ec-form').action = '/edit_category/' + d.id;
+    document.getElementById('ec-n').value = d.name;
+    document.getElementById('ec-s').value = d.specs;
+    openM('ec');
+  }
+</script>
+
+{% endblock %}

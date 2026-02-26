@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login — Warehouse OS</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div class="ico">📦</div>
+      <div>
+        <strong>WAREHOUSE OS</strong>
+        <span>v2.0</span>
+      </div>
+    </div>
+    <h2>Welcome back</h2>
+    <p class="sub">Sign in to your account</p>
+
+    {% if error %}
+      <div class="alert alert-error">⚠ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST">
+      <div>
+        <label>Username</label>
+        <input name="username" placeholder="your username" autocomplete="username" required>
+      </div>
+      <div>
+        <label>Password</label>
+        <input name="password" type="password" placeholder="your password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="primary" style="width:100%;justify-content:center;padding:11px">
+        Sign In →
+      </button>
+    </form>
+
+    <div class="auth-foot">
+      New seller? <a href="/signup">Create account</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
